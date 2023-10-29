@@ -1,60 +1,65 @@
-{ inputs =
-    { cargo2nix.url = "github:cargo2nix/cargo2nix";
-      nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-      rust-overlay.url = "github:oxalica/rust-overlay";
-      utils.url = "github:ursi/flake-utils/8";
+{
+  description = "Build a cargo project without extra checks";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
-  outputs = { cargo2nix, rust-overlay, utils, ... }@inputs:
-    with builtins;
-    utils.apply-systems
-      { inherit inputs;
+    flake-utils.url = "github:numtide/flake-utils";
+  };
 
-        overlays =
-          [ cargo2nix.overlays.default
-            rust-overlay.overlays.default
+  outputs = {
+    nixpkgs,
+    crane,
+    flake-utils,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+      };
+
+      craneLib = crane.lib.${system};
+      my-crate = craneLib.buildPackage {
+        pname = "circom";
+        version = "2";
+        doCheck = false;
+
+        src = craneLib.path ./.;
+
+        buildInputs =
+          [
+            # Add additional build inputs here
+          ]
+          ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            # Additional darwin specific inputs can be set here
+            pkgs.libiconv
           ];
 
-        systems = utils.default-systems ++ ["aarch64-darwin"];
-      }
-      ({ cargo2nix, pkgs, system, ... }:
-         let
-           rustChannel = "1.67.1";
-           rustPkgs =
-             pkgs.rustBuilder.makePackageSet
-               { rustChannel = rustChannel;
-                 packageFun = import ./Cargo.nix;
-               };
-         in
-         { inherit rustPkgs;
-           defaultPackage = rustPkgs.workspace.circom {};
+        # Additional environment variables can be set directly
+        # MY_CUSTOM_VAR = "some value";
+      };
+    in {
+      packages.default = my-crate;
 
-           devShell =
-             let
-               rust-toolchain =
-                 (pkgs.formats.toml {}).generate "rust-toolchain.toml"
-                   { toolchain =
-                       { channel = rustChannel;
+      apps.default = flake-utils.lib.mkApp {
+        drv = my-crate;
+      };
 
-                         components =
-                           [ "rustc"
-                             "rust-src"
-                             "cargo"
-                             "clippy"
-                             "rust-docs"
-                           ];
-                       };
-                   };
-             in
-             rustPkgs.workspaceShell {
-               nativeBuildInputs = with pkgs; [ rust-analyzer rustup ];
-               shellHook =
-                   ''
-                   cp --no-preserve=mode ${rust-toolchain} rust-toolchain.toml
+      devShells.default = craneLib.devShell {
+        # Inherit inputs from checks.
 
-                   export RUST_SRC_PATH=~/.rustup/toolchains/${rustChannel}-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/
-                   '';
-               };
-         }
-      );
+        # Additional dev-shell environment variables can be set directly
+        # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
+
+        # Extra inputs can be added here; cargo and rustc are provided by default.
+        packages = [
+          # pkgs.ripgrep
+        ];
+      };
+    });
 }
