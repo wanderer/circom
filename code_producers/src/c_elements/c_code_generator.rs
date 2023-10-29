@@ -658,20 +658,19 @@ pub fn generate_dat_file(dat_file: &mut dyn Write, producer: &CProducer) -> std:
                                                     //let hml = 256 as u32;
                                                     //dfile.write_all(&hml.to_be_bytes())?;
     dat_file.write_all(&hashmap)?;
-    dat_file.flush()?;
+    //dat_file.flush()?;
     let s = generate_dat_witness_to_signal_list(producer.get_witness_to_signal_list()); // list of bytes u64
                                                                                         //let sl = s.len() as u64; //8 bytes
                                                                                         //dfile.write_all(&sl.to_be_bytes())?;
     dat_file.write_all(&s)?;
-    dat_file.flush()?;
+    //dat_file.flush()?;
     let s = generate_dat_constant_list(producer, producer.get_field_constant_list()); // list of bytes Fr
     dat_file.write_all(&s)?;
-    dat_file.flush()?;
+    //dat_file.flush()?;
     //let ioml = producer.get_io_map().len() as u64;
     //dfile.write_all(&ioml.to_be_bytes())?;
     let iomap = generate_dat_io_signals_info(&producer, producer.get_io_map());
     dat_file.write_all(&iomap)?;
-    dat_file.flush()?;
     /*
         let ml = producer.get_message_list();
         let mll = ml.len() as u64;
@@ -684,6 +683,7 @@ pub fn generate_dat_file(dat_file: &mut dyn Write, producer: &CProducer) -> std:
             dfile.flush()?;
         }
     */
+    dat_file.flush()?;
     Ok(())
 }
 pub fn generate_function_list(_producer: &CProducer, list: &TemplateListParallel) -> (String, String) {
@@ -812,6 +812,9 @@ pub fn generate_fr_hpp_file(c_folder: &PathBuf, prime: &String) -> std::io::Resu
         "bn128" => include_str!("bn128/fr.hpp"),
         "bls12381" => include_str!("bls12381/fr.hpp"),
         "goldilocks" => include_str!("goldilocks/fr.hpp"),
+        "grumpkin" => include_str!("grumpkin/fr.hpp"),
+        "pallas" => include_str!("pallas/fr.hpp"),
+        "vesta" => include_str!("vesta/fr.hpp"),
         _ => unreachable!(),
     };
     for line in file.lines() {
@@ -851,6 +854,10 @@ pub fn generate_fr_cpp_file(c_folder: &PathBuf, prime: &String) -> std::io::Resu
         "bn128" => include_str!("bn128/fr.cpp"),
         "bls12381" => include_str!("bls12381/fr.cpp"),
         "goldilocks" => include_str!("goldilocks/fr.cpp"),
+        "grumpkin" => include_str!("grumpkin/fr.cpp"),
+        "pallas" => include_str!("pallas/fr.cpp"),
+        "vesta" => include_str!("vesta/fr.cpp"),
+        
         _ => unreachable!(),
     };
     for line in file.lines() {
@@ -890,6 +897,9 @@ pub fn generate_fr_asm_file(c_folder: &PathBuf, prime: &String) -> std::io::Resu
         "bn128" => include_str!("bn128/fr.asm"),
         "bls12381" => include_str!("bls12381/fr.asm"),
         "goldilocks" => include_str!("goldilocks/fr.asm"),
+        "grumpkin" => include_str!("grumpkin/fr.asm"),
+        "pallas" => include_str!("pallas/fr.asm"),
+        "vesta" => include_str!("vesta/fr.asm"),
         _ => unreachable!(),
     };    
     for line in file.lines() {
@@ -972,8 +982,8 @@ pub fn generate_c_file(name: String, producer: &CProducer) -> std::io::Result<()
     // code.append(&mut ml_def);
     for l in code {
         cfile.write_all(l.as_bytes())?;
-        cfile.flush()?;
     }
+    cfile.flush()?;
     Ok(())
 }
 
